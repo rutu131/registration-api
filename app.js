@@ -67,3 +67,5 @@ app.post("/users/", async (request, response) => {
     console.log(e.message);
   }
 });
+
+module.exports = app;
