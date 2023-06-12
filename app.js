@@ -28,22 +28,23 @@ initializeDbAndServer();
 
 //REGISTER API
 app.post("/users/", async (request, response) => {
-  const { username, name, password, gender, location } = request.body;
-  const hashedPassword = await bcrypt.hash(request.body.password, 10);
-  const selectUserQuery = `
+  try {
+    const { username, name, password, gender, location } = request.body;
+    const hashedPassword = await bcrypt.hash(request.body.password, 10);
+    const selectUserQuery = `
     SELECT
     *
     FROM
     user
     WHERE
     username=${username};`;
-  const dbUser = await db.get(selectUserQuery);
-  if (dbUser === undefined) {
-    if (password.length < 5) {
-      response.status(400);
-      response.send("Password is too short");
-    } else {
-      const addUserQuery = `
+    const dbUser = await db.get(selectUserQuery);
+    if (dbUser === undefined) {
+      if (password.length < 5) {
+        response.status(400);
+        response.send("Password is too short");
+      } else {
+        const addUserQuery = `
         INSERT INTO
         user(username,name,password,gender,location)
         VALUES
@@ -54,12 +55,15 @@ app.post("/users/", async (request, response) => {
             '${gender}',
             '${location}'
         );`;
-      await db.run(addUserQuery);
-      response.status(200);
-      response.send("User created successfully");
+        await db.run(addUserQuery);
+        response.status(200);
+        response.send("User created successfully");
+      }
+    } else {
+      response.status(400);
+      response.send("User already exists");
     }
-  } else {
-    response.status(400);
-    response.send("User already exists");
+  } catch (e) {
+    console.log(e.message);
   }
 });
