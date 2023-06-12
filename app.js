@@ -27,7 +27,7 @@ const initializeDbAndServer = async () => {
 initializeDbAndServer();
 
 //REGISTER API
-app.post("/users/", async (request, response) => {
+app.post("/register", async (request, response) => {
   try {
     const { username, name, password, gender, location } = request.body;
     const hashedPassword = await bcrypt.hash(request.body.password, 10);
@@ -68,4 +68,67 @@ app.post("/users/", async (request, response) => {
   }
 });
 
+app.post("/login", async (request, response) => {
+  const { username, password } = request.body;
+  const checkUsernameQuery = `
+    SELECT
+    *
+    FROM
+    user
+    WHERE
+    username='${username}';`;
+  const dbResponse = await db.get(checkUsernameQuery);
+  if (dbResponse === undefined) {
+    response.status(400);
+    response.send("Invalid User");
+  } else {
+    const isPasswordMatched = await bcrypt.compare(
+      password,
+      dbResponse.password
+    );
+    if (isPasswordMatched === true) {
+      response.send("Login Success!");
+    } else {
+      response.status(400);
+      response.send("Invalid Password");
+    }
+  }
+});
+
+app.put("/change-password", async (request, response) => {
+  const { username, oldPassword, newPassword } = request.body;
+  const checkUsernameQuery = `
+    SELECT
+    *
+    FROM
+    user
+    WHERE
+    username='${username}';`;
+  const dbResponse = await db.get(checkUsernameQuery);
+  if (dbResponse === undefined) {
+    response.status(400);
+    response.send("Invalid User");
+  } else {
+    if (oldPassword === dbResponse.password) {
+      if (newPassword.length > 5) {
+        const updatePasswordQuery = `
+          UPDATE
+          user
+          SET
+          password='${newPassword}'
+          WHERE 
+          username='${username}';`;
+        await db.run(updatePasswordQuery);
+        response.status(200);
+        response.send("Password updated");
+      } else {
+        response.status(400);
+        response.send("Invalid Password");
+      }
+    } else {
+      response.status(400);
+      response.send("Password too short");
+    }
+  }
+});
 module.exports = app;
